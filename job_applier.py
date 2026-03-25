@@ -59,6 +59,13 @@ def parse_args() -> argparse.Namespace:
         metavar="NAME",
         help="Filter to rows whose company_name contains this string (case-insensitive).",
     )
+    parser.add_argument(
+        "--cv",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Upload/use a specific CV PDF for this run (overrides the global CV_PATH in .env).",
+    )
     return parser.parse_args()
 
 
@@ -188,10 +195,12 @@ def print_summary(results: list[dict]) -> None:
 def main() -> None:
     args = parse_args()
 
-    # Override DRY_RUN if CLI flag is set
-    if args.dry_run:
+    if args.dry_run or args.cv:
         import config as _cfg
-        _cfg.DRY_RUN = True  # type: ignore[attr-defined]
+        if args.dry_run:
+            _cfg.DRY_RUN = True  # type: ignore[attr-defined]
+        if args.cv:
+            _cfg.CV_PATH = Path(args.cv).resolve()  # type: ignore[attr-defined]
 
     # Setup logging and directories
     config.LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -202,7 +211,8 @@ def main() -> None:
     console.rule(f"[bold blue]Job Application Automator[/] — {mode_label}")
     console.print(f"  AI Provider : [cyan]{config.AI_PROVIDER.upper()}[/]  |  "
                   f"SMTP : {config.SMTP_HOST}:{config.SMTP_PORT}  |  "
-                  f"Jobs CSV : {config.JOBS_CSV_PATH}")
+                  f"Jobs CSV : {config.JOBS_CSV_PATH.name}  |  "
+                  f"CV : {config.CV_PATH.name}")
     console.print()
 
     # Load jobs

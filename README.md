@@ -99,5 +99,4 @@ job-application-automation/
 ---
 
 ## 🛡️ Privacy & Security
-- **Never commit your `.env` file** or database files (`db.sqlite3`). Ensure `.gitignore` is properly configured.
 - **Authorization**: The Telegram bot utilizes `TELEGRAM_ALLOWED_CHAT_IDS` so only authorized users can instruct the bot to query the AI or send emails on your behalf.

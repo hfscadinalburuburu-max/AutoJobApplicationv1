@@ -85,6 +85,10 @@ def generate_email_api(request):
         if not all([company, position, jd]):
             return JsonResponse({'error': 'Company, position, and job description are required'}, status=400)
             
+        company = str(company)[:255]
+        position = str(position)[:255]
+        jd = str(jd)[:3000]
+            
         body, tokens = generate_email_body(company=company, position=position, job_description=jd)
         return JsonResponse({'success': True, 'body': body, 'tokens': tokens})
     except AIGenerationError as e:
@@ -107,6 +111,19 @@ def send_email_api(request):
         
         if not all([company, position, email, body]):
             return JsonResponse({'error': 'Missing required fields to send email'}, status=400)
+            
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({'error': 'Invalid email format'}, status=400)
+            
+        company = str(company)[:255]
+        position = str(position)[:255]
+        intro_name = str(intro_name)[:100]
+        link = str(link)[:1000]
+        jd = str(jd)[:10000]
             
         subject = config.EMAIL_SUBJECT_TEMPLATE.format(position=position, company=company)
         msg = build_message(to=email, intro_name=intro_name, subject=subject, ai_body=body, cv_path=config.CV_PATH)
@@ -140,6 +157,10 @@ def update_status_api(request, pk):
         status = data.get('status')
         if not status:
             return JsonResponse({'error': 'Status is required'}, status=400)
+            
+        valid_statuses = [choice[0] for choice in JobApplication.STATUS_CHOICES]
+        if status not in valid_statuses:
+            return JsonResponse({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}, status=400)
             
         app = get_object_or_404(JobApplication, pk=pk)
         app.status = status

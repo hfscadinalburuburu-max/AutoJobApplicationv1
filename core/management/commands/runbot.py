@@ -258,11 +258,11 @@ async def _process_job_url(update: Update, context: ContextTypes.DEFAULT_TYPE, u
     except AIGenerationError as e:
         return await msg.edit_text(f"❌ AI extraction failed: {e}")
 
-    company = details.get("company_name", "Unknown Company")
-    position = details.get("position", "Unknown Position")
-    recruiter_email = details.get("recruiter_email", "")
-    intro_name = details.get("intro_name", "Hiring Manager")
-    job_description = details.get("job_description", jd_text[:1000])
+    company = str(details.get("company_name", "Unknown Company"))[:255]
+    position = str(details.get("position", "Unknown Position"))[:255]
+    recruiter_email = str(details.get("recruiter_email", ""))[:254]
+    intro_name = str(details.get("intro_name", "Hiring Manager"))[:100]
+    job_description = str(details.get("job_description", jd_text[:1000]))[:10000]
 
     await msg.edit_text(
         f"✅ *Job Extracted:*\n🏢 {company}\n💼 {position}\n📧 {recruiter_email}\n🤖 Generating email…",
@@ -354,22 +354,24 @@ async def cmd_add_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     return ADD_COMPANY
 
 async def add_company(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["company"] = update.message.text.strip()
+    context.user_data["company"] = update.message.text.strip()[:255]
     await update.message.reply_text("Step 2/4 — Enter the *position*:", parse_mode=ParseMode.MARKDOWN)
     return ADD_POSITION
 
 async def add_position(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["position"] = update.message.text.strip()
+    context.user_data["position"] = update.message.text.strip()[:255]
     await update.message.reply_text("Step 3/4 — Enter the *recruiter email* (or `skip`):", parse_mode=ParseMode.MARKDOWN)
     return ADD_EMAIL
 
 async def add_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["email"] = "" if update.message.text.strip().lower() == "skip" else update.message.text.strip()
+    email_text = update.message.text.strip().lower()
+    context.user_data["email"] = "" if email_text == "skip" else email_text[:254]
     await update.message.reply_text("Step 4/4 — Paste the *JD* (or `skip`):", parse_mode=ParseMode.MARKDOWN)
     return ADD_JD
 
 async def add_jd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["jd"] = "" if update.message.text.strip().lower() == "skip" else update.message.text.strip()
+    jd_text = update.message.text.strip()
+    context.user_data["jd"] = "" if jd_text.lower() == "skip" else jd_text[:10000]
     d = context.user_data
     await update.message.reply_text(
         f"✅ *Review:*\n🏢 {d['company']}\n💼 {d['position']}\n📧 {d.get('email')}\n\nReply *yes* to save, or *no* to cancel.",

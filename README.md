@@ -1,152 +1,103 @@
-# Job Application Automation — v2
+# Job Application Automation (Django)
 
-A modular, AI-powered job application suite with:
-- **CLI** — process CSV job lists, generate personalised emails, send with SMTP
-- **Desktop GUI** — add jobs, track applications, discover new jobs, manage everything visually
-- **Telegram Bot** — send job links from Telegram → auto-process → preview & send
-- **Application Tracker** — SQLite dashboard with status tracking
-- **Job Discovery** — auto-search Indeed, Google Jobs, LinkedIn
+An AI-powered job application suite completely rebuilt on the **Django** framework. It helps you seamlessly track job applications, discover new positions, automatically extract job details via AI, and generate personalized cover letters—all from a web dashboard or directly via Telegram.
+
+## ✨ Key Features
+
+- **Web Dashboard**: A centralized UI to view all applications, update statuses, and add new jobs.
+- **Telegram Bot Integration**: Automate your application process on the go. Send a job URL to the bot, and it will fetch the description, extract details, and generate an email preview for you to send or save.
+- **AI-Powered Generation**: Uses Gemini (or Grok) to read job descriptions and craft high-quality, personalized email outreach based on your CV profile.
+- **Job Discovery**: Integrated search for Indeed, Google Jobs, and LinkedIn based on your keywords and location.
+- **SQLite Database**: Fully managed via Django ORM (`db.sqlite3`).
 
 ---
 
-## Quick Start
+## 🛠️ Quick Start
 
-### 1. Install dependencies
+### 1. Install Dependencies
+Ensure you have Python 3.9+ installed.
 ```bash
+python -m venv .venv
+
+# On Windows:
+.\.venv\Scripts\Activate.ps1
+# On macOS/Linux:
+# source .venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-### 2. Configure
+### 2. Configuration
+Copy the `.env.example` to `.env` and fill out your credentials.
 ```bash
 cp .env.example .env
-# Edit .env with your API keys, SMTP credentials, and profile
 ```
+Key variables to define:
+- **AI Provider**: `AI_PROVIDER` (gemini or grok), `GEMINI_API_KEY`
+- **Email Settings**: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+- **Telegram**: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_CHAT_IDS`
+- **Your CV**: Update the path to your PDF resume via `CV_PATH`.
 
-### 3. Run migrations
+### 3. Database Setup
+Run the Django migrations to set up the SQLite database:
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 4. Launch the Web Dashboard
+### 4. Running the Web Dashboard
+Launch the Django development server:
 ```bash
 python manage.py runserver
 ```
+Visit `http://localhost:8000/` to view your application tracker.
 
-### 5. Run the Telegram Bot
+### 5. Running the Telegram Bot
+In a separate terminal (with the virtual environment activated), start the Telegram polling bot:
 ```bash
 python manage.py runbot
 ```
 
 ---
 
-## Desktop GUI
+## 📱 Telegram Bot Commands
 
-Launch with `python run_gui.py`.
-
-| Page | Description |
-|------|-------------|
-| 📋 Dashboard | Table of all applications — filter by status, right-click to update, double-click notes |
-| ➕ Add Job | Enter company/position/email/link, fetch JD from URL, generate email preview, send |
-| 🔍 Discover | Search Indeed / Google Jobs / LinkedIn by keywords & location, one-click load into form |
-| ⚙️ Settings | Edit all `.env` values through the GUI — no manual file editing needed |
-
-The GUI can also launch the **Telegram bot in-process** (sidebar button "🤖 Run Bot").
-
----
-
-## Telegram Bot
-
-### Setup
-1. Message [@BotFather](https://t.me/BotFather) → `/newbot` → copy token
-2. Add `TELEGRAM_BOT_TOKEN=<token>` to `.env`
-3. Find your chat ID: message [@userinfobot](https://t.me/userinfobot)
-4. Add `TELEGRAM_ALLOWED_CHAT_IDS=<your_id>` to `.env`
-
-### Commands
-
-| Command | Action |
-|---------|--------|
-| `/start` | Welcome & quick guide |
-| `/list [n]` | Last N applications |
-| `/status <company>` | Search by company |
-| `/apply <url>` | Process a job URL |
-| `/add` | Guided manual job entry |
-| `/search <keywords>` | Discover new jobs |
-| `/update <id> <status>` | Change application status |
-| `/stats` | Application statistics |
-
-**Shortcut**: Just paste a job URL (no command needed) — the bot auto-processes it!
+Once your bot is running, you can interact with it on Telegram.
+- **Just paste a job URL** to automatically extract the job description, generate the email, and process your application.
+- `/start` — Welcome and instructions
+- `/list [n]` — View the latest applications
+- `/status <company>` — Search applications by company name
+- `/add` — Manually add a job description without a URL
+- `/search <keywords>` — Run discovery for new jobs matching your `.env` keywords
+- `/update <id> <status>` — Update a job status (e.g., `applied`, `interview`, `offer`)
+- `/stats` — View your overall application statistics
 
 ---
 
-## Job Discovery
+## 📂 Project Structure
 
-Set preferences in `.env`:
-```env
-JOB_KEYWORDS=Python Developer
-JOB_LOCATION=Nairobi, Kenya
-JOB_REMOTE=true
-JOB_DISCOVERY_SOURCES=indeed,google,linkedin
-SERPAPI_KEY=optional_for_google_jobs
-```
-
-Or search from the GUI Discovery page or via `/search` in Telegram.
-
----
-
-## Application Tracker
-
-All applications are stored in `applications.db` (SQLite).
-
-Statuses: `pending` → `applied` → `interview` → `offer` / `rejected` / `no_response`
-
-Update status from:
-- **GUI**: right-click a row → Set Status
-- **Telegram**: `/update <id> <status>`
-- **CLI**: jobs.csv `status` column is migrated into the DB on first run
-
----
-
-## Project Structure
-
-```
+```text
 job-application-automation/
-├── manage.py             ← Django entry point
-├── db.sqlite3            ← Django SQLite tracker
-├── jobtracker/           ← Main Django project configuration
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py / asgi.py
-├── core/                 ← Core business logic and Telegram Bot
-│   ├── models.py         ← JobApplication model
+├── manage.py             ← Django management script
+├── db.sqlite3            ← SQLite database (auto-created after migrations)
+├── jobtracker/           ← Django core configuration (settings, urls, wsgi)
+├── core/                 ← Business logic & Database Models
+│   ├── models.py         ← JobApplication schema
 │   └── management/commands/
-│       └── runbot.py     ← Telegram bot (python manage.py runbot)
-├── dashboard/            ← Web Interface (UI/Views)
-│   ├── views.py          ← Dashboard, Add Job, Discovery views
-│   ├── urls.py
-│   └── templates/        ← HTML templates for the UI
-├── services/             ← Extracted services
-│   ├── ai_generator.py   ← Gemini / Grok email generation
-│   ├── email_sender.py   ← SMTP delivery
-│   └── job_discovery.py  ← Job search (Indeed, Google, LinkedIn)
-├── .env                  ← Your secrets (never commit this)
-└── README.md             ← This file
+│       └── runbot.py     ← Telegram bot entry point
+├── dashboard/            ← Web Interface (views, urls)
+│   ├── views.py          ← UI logic
+│   └── templates/        ← HTML pages (dashboard, add_job, discovery)
+├── services/             ← External Integrations
+│   ├── ai_generator.py   ← Interaction with Gemini/Grok API
+│   ├── email_sender.py   ← SMTP mailer
+│   └── job_discovery.py  ← Web scraping for job boards 
+├── .env                  ← Local environment variables (do not commit)
+└── README.md             ← This documentation
 ```
 
 ---
 
-## Environment Variables
-
-See [`.env.example`](.env.example) for the full list. Key additions in v2:
-
-| Variable | Description |
-|----------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Token from @BotFather |
-| `TELEGRAM_ALLOWED_CHAT_IDS` | Comma-separated allowed user IDs |
-| `JOB_KEYWORDS` | Default job search keywords |
-| `JOB_LOCATION` | Default location (e.g. "Nairobi, Kenya") |
-| `JOB_REMOTE` | Include remote jobs (true/false) |
-| `JOB_DISCOVERY_SOURCES` | indeed, google, linkedin |
-| `SERPAPI_KEY` | Optional — for Google Jobs via SerpAPI |
-| `DB_PATH` | SQLite database path (default: applications.db) |
+## 🛡️ Privacy & Security
+- **Never commit your `.env` file** or database files (`db.sqlite3`). Ensure `.gitignore` is properly configured.
+- **Authorization**: The Telegram bot utilizes `TELEGRAM_ALLOWED_CHAT_IDS` so only authorized users can instruct the bot to query the AI or send emails on your behalf.

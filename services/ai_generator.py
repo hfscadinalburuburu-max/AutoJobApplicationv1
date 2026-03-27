@@ -10,6 +10,7 @@ Toggle with AI_PROVIDER env var ("gemini" | "grok").
 from __future__ import annotations
 
 import logging
+import json
 from dataclasses import dataclass
 
 import config
@@ -52,6 +53,18 @@ Position: {position}
 --- END JOB DESCRIPTION ---
 
 Write the email body now.
+"""
+
+EXTRACT_SYSTEM_PROMPT_TEMPLATE = """\
+You are an expert job detail extractor. Extract the following details from the given job listing text and return ONLY a raw JSON dictionary. Do NOT wrap the JSON in markdown blocks (e.g. no ```json).
+Required JSON keys:
+- "company_name" (string)
+- "position" (string)
+- "recruiter_email" (string, leave empty if not found)
+- "intro_name" (string, leave empty if not found)
+- "job_description" (string, a concise summary or the full text, maximum 1000 characters)
+
+Return exactly this JSON mapping and nothing else.
 """
 
 
@@ -107,6 +120,24 @@ def _generate_gemini(system: str, user: str) -> tuple[str, int]:
     return body, tokens
 
 
+def _extract_gemini(text: str) -> dict:
+    try:
+        import google.generativeai as genai  # type: ignore
+    except ImportError:
+        raise AIGenerationError("google-generativeai package not installed.")
+
+    genai.configure(api_key=config.GEMINI_API_KEY)
+    model = genai.GenerativeModel(
+        model_name=config.GEMINI_MODEL,
+        system_instruction=EXTRACT_SYSTEM_PROMPT_TEMPLATE,
+    )
+    response = model.generate_content(text)
+    content = response.text.strip()
+    if content.startswith("```json"): content = content[7:]
+    if content.endswith("```"): content = content[:-3]
+    return json.loads(content.strip())
+
+
 # ── Grok (OpenAI-compatible) implementation ───────────────────────────────────
 
 
@@ -133,6 +164,27 @@ def _generate_grok(system: str, user: str) -> tuple[str, int]:
     body = response.choices[0].message.content.strip()
     tokens = response.usage.total_tokens if response.usage else 0
     return body, tokens
+
+
+def _extract_grok(text: str) -> dict:
+    try:
+        from openai import OpenAI  # type: ignore
+    except ImportError:
+        raise AIGenerationError("openai package not installed.")
+
+    client = OpenAI(api_key=config.GROK_API_KEY, base_url=config.GROK_BASE_URL)
+    response = client.chat.completions.create(
+        model=config.GROK_MODEL,
+        messages=[
+            {"role": "system", "content": EXTRACT_SYSTEM_PROMPT_TEMPLATE},
+            {"role": "user", "content": text},
+        ],
+        temperature=0.1,
+    )
+    content = response.choices[0].message.content.strip() if response.choices and response.choices[0].message and response.choices[0].message.content else "{}"
+    if content.startswith("```json"): content = content[7:]
+    if content.endswith("```"): content = content[:-3]
+    return json.loads(content.strip())
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -174,6 +226,20 @@ def generate_email_body(
 
     logger.debug("Generated %d chars, ~%d tokens", len(body), tokens)
     return body, tokens
+
+
+def extract_job_details(text: str) -> dict:
+    """Extract job details (company, position, email, intro_name, description) from raw text."""
+    logger.debug("Extracting job details using provider=%s", config.AI_PROVIDER)
+    try:
+        if config.AI_PROVIDER == "gemini":
+            return _extract_gemini(text)
+        elif config.AI_PROVIDER == "grok":
+            return _extract_grok(text)
+        else:
+            raise AIGenerationError(f"Unknown AI_PROVIDER: '{config.AI_PROVIDER}'")
+    except Exception as exc:
+        raise AIGenerationError(f"Failed to extract job details: {exc}") from exc
 
 
 # ── Self-test ─────────────────────────────────────────────────────────────────

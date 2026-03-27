@@ -71,6 +71,7 @@ JOBS_CSV_PATH: Path = BASE_DIR / _optional("JOBS_CSV_PATH", "jobs.csv")
 CV_PATH: Path = BASE_DIR / _optional("CV_PATH", "cv.pdf")
 SENT_LOG_PATH: Path = BASE_DIR / _optional("SENT_LOG_PATH", "sent_log.csv")
 LOG_DIR: Path = BASE_DIR / _optional("LOG_DIR", "logs")
+DB_PATH: Path = BASE_DIR / _optional("DB_PATH", "applications.db")
 
 # ── Email Template ────────────────────────────────────────────────────────────
 EMAIL_SUBJECT_TEMPLATE: str = _optional(
@@ -84,3 +85,24 @@ MAX_DELAY_SECONDS: float = float(_optional("MAX_DELAY_SECONDS", "60"))
 # ── Safety / Behaviour ────────────────────────────────────────────────────────
 DRY_RUN: bool = _optional("DRY_RUN", "true").lower() in ("true", "1", "yes")
 MAX_RETRIES: int = int(_optional("MAX_RETRIES", "2"))
+
+# ── Telegram Bot ──────────────────────────────────────────────────────────────
+TELEGRAM_BOT_TOKEN: str = _optional("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_ALLOWED_CHAT_IDS: list[str] = [
+    cid.strip()
+    for cid in _optional("TELEGRAM_ALLOWED_CHAT_IDS", "").split(",")
+    if cid.strip()
+]
+
+# ── Job Discovery ─────────────────────────────────────────────────────────────
+JOB_KEYWORDS: str = _optional("JOB_KEYWORDS", "Software Engineer")
+JOB_LOCATION: str = _optional("JOB_LOCATION", "Kenya")
+JOB_REMOTE: bool = _optional("JOB_REMOTE", "true").lower() in ("true", "1", "yes")
+JOB_EXPERIENCE: str = _optional("JOB_EXPERIENCE", "mid")
+JOB_MIN_SALARY: int = int(_optional("JOB_MIN_SALARY", "0"))
+SERPAPI_KEY: str = _optional("SERPAPI_KEY", "")
+JOB_DISCOVERY_SOURCES: list[str] = [
+    s.strip().lower()
+    for s in _optional("JOB_DISCOVERY_SOURCES", "indeed,google").split(",")
+    if s.strip()
+]

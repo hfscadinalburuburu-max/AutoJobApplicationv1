@@ -1,0 +1,211 @@
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="{% url 'dashboard:index' %}" class="text-slate-400 hover:text-white transition-colors bg-dark-700/50 hover:bg-dark-600 p-2 rounded-lg">
+            <i class="ph ph-arrow-left text-xl"></i>
+        </a>
+        <div>
+            <h2 class="text-3xl font-bold text-white tracking-tight">Add Application</h2>
+            <p class="text-slate-400 mt-1">Let AI extract the details and tailor your cover letter.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        
+        <!-- Left Column: Form -->
+        <div class="glass-panel p-6 rounded-xl border border-dark-600 space-y-5 shadow-xl">
+            <!-- URL Fetcher -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Auto-fill from Job URL <span class="text-brand text-xs ml-2 font-normal">(Optional)</span></label>
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i class="ph ph-link absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="job-url" placeholder="https://linkedin.com/jobs/..." class="w-full bg-dark-900 border border-dark-600 text-white rounded-md pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-brand focus:border-brand outline-none transition-shadow">
+                    </div>
+                    <button id="btn-fetch" class="bg-dark-700 hover:bg-dark-600 text-white px-4 py-2.5 rounded-md border border-dark-600 font-medium transition-colors flex items-center gap-2 whitespace-nowrap">
+                        <i class="ph ph-download-simple"></i> Fetch
+                    </button>
+                </div>
+            </div>
+
+            <hr class="border-dark-700">
+
+            <!-- Manual Fields -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Company <span class="text-red-400">*</span></label>
+                    <input type="text" id="company" class="w-full bg-dark-900 border border-dark-600 text-white rounded-md px-4 py-2 focus:ring-2 focus:ring-brand outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Position <span class="text-red-400">*</span></label>
+                    <input type="text" id="position" class="w-full bg-dark-900 border border-dark-600 text-white rounded-md px-4 py-2 focus:ring-2 focus:ring-brand outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Recruiter Email <span class="text-red-400">*</span></label>
+                <input type="email" id="email" class="w-full bg-dark-900 border border-dark-600 text-white rounded-md px-4 py-2 focus:ring-2 focus:ring-brand outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Job Description <span class="text-red-400">*</span></label>
+                <textarea id="jd" rows="5" class="w-full bg-dark-900 border border-dark-600 text-white rounded-md px-4 py-2 focus:ring-2 focus:ring-brand outline-none resize-none font-mono text-xs"></textarea>
+            </div>
+            
+            <button id="btn-generate" class="w-full bg-gradient-to-r from-brand to-indigo-500 hover:from-brand-hover hover:to-indigo-600 text-white py-3 rounded-lg font-bold shadow-lg shadow-brand/20 transition-all flex justify-center items-center gap-2 mt-4">
+                <i class="ph-fill ph-magic-wand"></i> Generate Tailored Email
+            </button>
+        </div>
+
+        <!-- Right Column: AI Output -->
+        <div class="glass-panel p-6 rounded-xl border border-dark-600 h-full flex flex-col pt-0 px-0 overflow-hidden shadow-xl">
+            <div class="bg-dark-900/50 px-6 py-4 border-b border-dark-600 flex justify-between items-center">
+                <h3 class="font-medium text-slate-200 flex items-center gap-2"><i class="ph ph-envelope-simple text-xl text-brand"></i> Email Preview</h3>
+                <span id="token-usage" class="text-xs text-slate-500 font-mono hidden">Tokens: 0</span>
+            </div>
+            
+            <div class="p-6 flex-1 flex flex-col">
+                <textarea id="email-body" class="flex-1 w-full bg-transparent text-slate-300 outline-none resize-none font-sans leading-relaxed text-sm mb-4 min-h-[300px]" placeholder="Generated AI email will appear here..." spellcheck="false"></textarea>
+                
+                <div class="flex gap-3 mt-auto">
+                    <button id="btn-send" disabled class="flex-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2">
+                        <i class="ph-fill ph-paper-plane-right"></i> Send & Track
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const el = id => document.getElementById(id);
+    
+    // UI Helpers
+    const setLoading = (btnId, isLoading, originalHtml) => {
+        const btn = el(btnId);
+        if (isLoading) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> Processing...`;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    };
+    
+    // Toast Notification
+    const toast = (msg, type = 'success') => {
+        const div = document.createElement('div');
+        div.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-xl font-medium text-white transition-opacity duration-300 flex items-center gap-3 z-50 ${type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`;
+        div.innerHTML = `<i class="ph-fill ${type === 'success' ? 'ph-check-circle' : 'ph-warning-circle'} text-xl"></i> ${msg}`;
+        document.body.appendChild(div);
+        setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 300); }, 3000);
+    };
+
+    // 1. Fetch JD
+    el('btn-fetch').addEventListener('click', async () => {
+        const url = el('job-url').value;
+        if(!url) return toast('Please enter a URL', 'error');
+        
+        const ogHtml = el('btn-fetch').innerHTML;
+        setLoading('btn-fetch', true, ogHtml);
+        
+        try {
+            const res = await fetch('/api/fetch-jd/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.csrfToken },
+                body: JSON.stringify({ url })
+            });
+            const data = await res.json();
+            
+            if(data.error) throw new Error(data.error);
+            
+            el('jd').value = data.raw_text;
+            if(data.details) {
+                if(data.details.company) el('company').value = data.details.company;
+                if(data.details.position) el('position').value = data.details.position;
+                if(data.details.recruiter_emails && data.details.recruiter_emails.length > 0) {
+                    el('email').value = data.details.recruiter_emails[0];
+                }
+            }
+            if(data.warning) toast(data.warning, 'error');
+            else toast('Job details extracted');
+            
+        } catch (e) {
+            toast(e.message, 'error');
+        } finally {
+            setLoading('btn-fetch', false, ogHtml);
+        }
+    });
+
+    // 2. Generate Email
+    el('btn-generate').addEventListener('click', async () => {
+        const company = el('company').value;
+        const position = el('position').value;
+        const jd = el('jd').value;
+        
+        if(!company || !position || !jd) return toast('Company, Position, and JD are required', 'error');
+        
+        const ogHtml = el('btn-generate').innerHTML;
+        setLoading('btn-generate', true, ogHtml);
+        
+        try {
+            const res = await fetch('/api/generate-email/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.csrfToken },
+                body: JSON.stringify({ company, position, job_description: jd })
+            });
+            const data = await res.json();
+            
+            if(data.error) throw new Error(data.error);
+            
+            el('email-body').value = data.body;
+            el('token-usage').textContent = `Tokens: ${data.tokens}`;
+            el('token-usage').classList.remove('hidden');
+            el('btn-send').disabled = false;
+            toast('Email generated successfully!');
+            
+        } catch (e) {
+            toast(e.message, 'error');
+        } finally {
+            setLoading('btn-generate', false, ogHtml);
+        }
+    });
+
+    // 3. Send Email
+    el('btn-send').addEventListener('click', async () => {
+        const company = el('company').value;
+        const position = el('position').value;
+        const body = el('email-body').value;
+        const email = el('email').value;
+        const link = el('job-url').value;
+        const jd = el('jd').value;
+        
+        if(!email) return toast('Recruiter email is required to send', 'error');
+        
+        const ogHtml = el('btn-send').innerHTML;
+        setLoading('btn-send', true, ogHtml);
+        
+        try {
+            const res = await fetch('/api/send-email/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.csrfToken },
+                body: JSON.stringify({ company, position, body, email, link, jd })
+            });
+            const data = await res.json();
+            
+            if(data.error) throw new Error(data.error);
+            
+            toast('Application sent and tracked!');
+            setTimeout(() => window.location.href = '/', 1500);
+            
+        } catch (e) {
+            toast(e.message, 'error');
+            setLoading('btn-send', false, ogHtml);
+        }
+    });
+</script>
+{% endblock %}

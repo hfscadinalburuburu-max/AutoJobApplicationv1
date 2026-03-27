@@ -3,8 +3,18 @@
 
 # Runtime outputs
 sent_log.csv
+*.csv
 logs/
 sbom.json
+
+# Databases
+db.sqlite3
+*.sqlite3
+applications.db
+
+# User data
+cv.pdf
+*.pdf
 
 # Python
 __pycache__/

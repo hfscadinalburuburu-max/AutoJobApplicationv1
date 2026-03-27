@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobBot Automation</title>
+    <!-- Tailwind CSS (via CDN for rapid development, can be bundled later) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0f1117',
+                            800: '#16213e',
+                            700: '#1e293b',
+                            600: '#334155',
+                        },
+                        brand: {
+                            DEFAULT: '#3b82f6',
+                            hover: '#2563eb',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f1117; color: #f8fafc; }
+        .glass-panel {
+            background: rgba(22, 33, 62, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-dark-900 border-r border-dark-700 flex flex-col hidden md:flex">
+        <div class="px-6 py-8">
+            <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                <i class="ph-fill ph-rocket-launch text-brand"></i> JobBot
+            </h1>
+            <p class="text-slate-400 text-xs mt-1 uppercase tracking-wider font-semibold">Auto-Apply Suite</p>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2">
+            <a href="{% url 'dashboard:index' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-dark-700 transition-colors {% if request.resolver_match.url_name == 'index' %}bg-dark-700 text-brand font-medium{% else %}text-slate-300{% endif %}">
+                <i class="ph ph-squares-four text-xl"></i> Dashboard
+            </a>
+            <a href="{% url 'dashboard:add_job' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-dark-700 transition-colors {% if request.resolver_match.url_name == 'add_job' %}bg-dark-700 text-brand font-medium{% else %}text-slate-300{% endif %}">
+                <i class="ph ph-plus-circle text-xl"></i> Add Job
+            </a>
+            <a href="{% url 'dashboard:discovery' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-dark-700 transition-colors {% if request.resolver_match.url_name == 'discovery' %}bg-dark-700 text-brand font-medium{% else %}text-slate-300{% endif %}">
+                <i class="ph ph-magnifying-glass text-xl"></i> Discover
+            </a>
+            <a href="{% url 'dashboard:settings' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-dark-700 transition-colors {% if request.resolver_match.url_name == 'settings' %}bg-dark-700 text-brand font-medium{% else %}text-slate-300{% endif %}">
+                <i class="ph ph-gear text-xl"></i> Settings
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-dark-700">
+            <div class="bg-dark-800 rounded-lg p-4">
+                <p class="text-xs text-slate-400 font-medium mb-2">TELEGRAM BOT</p>
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-sm font-medium text-slate-200">Online</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-dark-800 relative">
+        <div class="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"></div>
+        
+        <!-- Topbar mobile -->
+        <header class="md:hidden bg-dark-900 border-b border-dark-700 p-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-white"><i class="ph-fill ph-rocket-launch text-brand"></i> JobBot</h1>
+            <button class="text-slate-300 hover:text-white"><i class="ph ph-list text-2xl"></i></button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 lg:p-10 z-10">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- CSRF Token for AJAX -->
+    <script>
+        const getCookie = (name) => {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        window.csrfToken = getCookie('csrftoken');
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
